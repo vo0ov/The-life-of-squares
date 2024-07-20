@@ -10,19 +10,18 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.ArcType;
 import javafx.scene.text.Font;
+import javafx.scene.text.TextAlignment;
 import javafx.stage.Stage;
 import javafx.animation.AnimationTimer;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class Main extends Application {
-    private final Random random = new Random();
+    private final Random random = Config.random;
     private long lastUpdateTime = System.nanoTime();
-    private List<Bot> bots = new ArrayList<>();
-    private List<Eat> eats = new ArrayList<>();
-    private List<Poison> poisons = new ArrayList<>();
+    private boolean isEnd = false;
+    private long year = 0;
 
     public static void main(String[] args) {
         launch(args);
@@ -41,18 +40,18 @@ public class Main extends Application {
 
                 // Eat count
                 case W:
-                    Eat.summon(eats, random);
+                    Eat.summon();
                     break;
                 case S:
-                    Eat.removeRandom(eats, random);
+                    Eat.removeRandom();
                     break;
 
                 // Poison count
                 case A:
-                    Poison.removeRandom(poisons, random);
+                    Poison.removeRandom();
                     break;
                 case D:
-                    Poison.summon(poisons, random);
+                    Poison.summon();
                     break;
 
                 // Turbo mode
@@ -72,9 +71,9 @@ public class Main extends Application {
 
                 // Restart
                 case R:
-                    bots = new ArrayList<>();
-                    eats = new ArrayList<>();
-                    poisons = new ArrayList<>();
+                    Config.bots = new ArrayList<>();
+                    Config.eats = new ArrayList<>();
+                    Config.poisons = new ArrayList<>();
                     setupEntities();
                     break;
 
@@ -85,10 +84,10 @@ public class Main extends Application {
 
                 // Bot count
                 case DOWN:
-                    Bot.removeRandom(bots, random);
+                    Bot.removeRandom();
                     break;
                 case UP:
-                    Bot.summon(bots, random);
+                    Bot.summon();
                     break;
             }
         });
@@ -115,21 +114,79 @@ public class Main extends Application {
                 long deltaTime = now - lastUpdateTime;
                 if ((deltaTime >= 1000F / Config.fps * 1000000F || Config.turbo)) {
                     if (!Config.startWithPause) {
+                        year++;
+
                         cleanAll(canvas, gc);
                         updateAll();
                         drawAll(gc);
 
-                        gc.setFont(new Font("Arial", 20));
-                        gc.setFill(Color.WHITE);
-                        if (!Config.turbo) {
-                            gc.fillText((int) Config.fps + " FPS", 5, 25);
+                        // Leaderboard
+                        Map<Color, Long> botColorsAndCounts = Config.bots.stream()
+                                .collect(Collectors.groupingBy(
+                                        bot -> Color.web(bot.color.toString().replace("0x", "")),
+                                        Collectors.counting()
+                                ));
+
+                        Map<Color, Long> sortedBotColorsAndCounts = botColorsAndCounts.entrySet().stream()
+                                .sorted(Map.Entry.comparingByValue(Comparator.reverseOrder()))
+                                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (oldValue, newValue) -> oldValue, LinkedHashMap::new));
+
+
+                        // Auto stop
+                        if (sortedBotColorsAndCounts.size() == 1) {
+                            if (!isEnd) {
+                                Config.startWithPause = !Config.startWithPause;
+                                isEnd = true;
+                            }
                         } else {
-                            gc.fillText("??? FPS", 5, 25);
+                            isEnd = false;
+                        }
+
+
+                        double scWidth = 10.4 * ((sortedBotColorsAndCounts.size() > 9 ? 23 : 22) + (sortedBotColorsAndCounts.entrySet().iterator().next().getValue() + "").length());
+                        gc.setFill(Color.rgb(50, 50, 50, 0.2));
+                        gc.fillRect(Config.width - scWidth, 0, Config.width, Math.min(25 * sortedBotColorsAndCounts.size(), 250) + 20);
+
+
+                        int counter = 1;
+                        for (Map.Entry<Color, Long> entry : sortedBotColorsAndCounts.entrySet()) {
+                            if (counter > 10) {
+                                break;
+                            }
+                            gc.setFont(new Font("Arial", 20));
+                            gc.setTextAlign(TextAlignment.RIGHT);
+                            gc.setFill(entry.getKey());
+                            gc.fillText(counter + ". Существ в команде: " + entry.getValue(), Config.width - 5, 5 + (25 * counter));
+                            counter++;
+                        }
+
+                        String[] texts = {
+                                "Скорость: " + (int) Config.fps,
+                                "Существ: " + Config.bots.size(),
+                                "Турбо: " + (Config.turbo ? "Да" : "Нет"),
+                                "Пауза: " + (Config.startWithPause ? "Да" : "Нет"),
+                                "Год: " + year,
+                                "Еда: " + Config.eats.size(),
+                                "Яд: " + Config.poisons.size()
+                        };
+                        int textsCounter = 1;
+                        for (String text : texts) {
+                            gc.setFont(new Font("Arial", 20));
+                            gc.setTextAlign(TextAlignment.LEFT);
+                            gc.setFill(Color.WHITE);
+                            gc.fillText(text, 5, 25 * textsCounter);
+                            textsCounter++;
                         }
                     } else {
                         gc.setFont(new Font("Arial", 20));
-                        gc.setFill(Color.WHITE);
-                        gc.fillText("Пауза", (double) Config.width / 2 - 25, 25);
+                        gc.setTextAlign(TextAlignment.CENTER);
+                        if (isEnd) {
+                            gc.setFill(Color.RED);
+                            gc.fillText("Конец игры", (double) Config.width / 2, 25);
+                        } else {
+                            gc.setFill(Color.WHITE);
+                            gc.fillText("Пауза", (double) Config.width / 2, 25);
+                        }
                     }
 
                     lastUpdateTime = now;
@@ -139,16 +196,24 @@ public class Main extends Application {
     }
 
     private void setupEntities() {
-        for (int i = 0; i < Config.botsCount; i++) {
-            Bot.summon(bots, random);
+        if (Config.useCommands) {
+            for (Map.Entry<Color, Integer> command : Config.commands.entrySet()) {
+                for (int i = 0; i < command.getValue(); i++) {
+                    Bot.summon(command.getKey());
+                }
+            }
+        } else {
+            for (int i = 0; i < Config.botsCount; i++) {
+                Bot.summon();
+            }
         }
 
         for (int i = 0; i < Config.eatsCount; i++) {
-            Eat.summon(eats, random);
+            Eat.summon();
         }
 
         for (int i = 0; i < Config.poisonsCount; i++) {
-            Poison.summon(poisons, random);
+            Poison.summon();
         }
     }
 
@@ -181,7 +246,7 @@ public class Main extends Application {
         List<Bot> diedBots = new ArrayList<>();
         List<Bot> newBots = new ArrayList<>();
 
-        for (Bot bot : bots) {
+        for (Bot bot : Config.bots) {
             // Bot move
             if (random.nextInt(2) == 1) {
                 boolean stepNotOk = true;
@@ -198,27 +263,27 @@ public class Main extends Application {
             }
 
             // Bot eat Eat()
-            for (Eat eat : eats) {
+            for (Eat eat : Config.eats) {
                 if (bot.netX == eat.netX && bot.netY == eat.netY) {
                     bot.satiety++;
-                    eats.remove(eat);
-                    Eat.summon(eats, random);
+                    Config.eats.remove(eat);
+                    Eat.summon();
                     break;
                 }
             }
 
             // Bot eat Poison()
-            for (Poison poison : poisons) {
+            for (Poison poison : Config.poisons) {
                 if (bot.netX == poison.netX && bot.netY == poison.netY) {
                     bot.satiety--;
-                    poisons.remove(poison);
-                    Poison.summon(poisons, random);
+                    Config.poisons.remove(poison);
+                    Poison.summon();
                     break;
                 }
             }
 
             // Bot attack
-            for (Bot _bot : bots) {
+            for (Bot _bot : Config.bots) {
                 if (bot.netX == _bot.netX && bot.netY == _bot.netY) {
                     if (bot.color != _bot.color) {
                         Bot wonBot;
@@ -251,31 +316,31 @@ public class Main extends Application {
 
         // Kill died bots
         for (Bot bot : diedBots) {
-            bots.remove(bot);
+            Config.bots.remove(bot);
         }
 
         // Create new bots
         for (Bot bot : newBots) {
-            Bot.summon(bots, random, bot.netX, bot.netY, bot.color);
+            Bot.summon(bot.netX, bot.netY, bot.color);
         }
     }
 
     private void drawBots(GraphicsContext gc) {
-        for (Bot bot : bots) {
+        for (Bot bot : Config.bots) {
             gc.setFill(bot.color);
             gc.fillRect(bot.netX * Config.cellSize, bot.netY * Config.cellSize, Config.cellSize, Config.cellSize);
         }
     }
 
     private void drawEats(GraphicsContext gc) {
-        for (Eat eat : eats) {
+        for (Eat eat : Config.eats) {
             gc.setFill(Config.eatColor);
             gc.fillArc(eat.netX * Config.cellSize, eat.netY * Config.cellSize, Config.cellSize, Config.cellSize, 0, 360, ArcType.OPEN);
         }
     }
 
     private void drawPoisons(GraphicsContext gc) {
-        for (Poison poison : poisons) {
+        for (Poison poison : Config.poisons) {
             gc.setFill(Config.poisonColor);
             gc.fillArc(poison.netX * Config.cellSize, poison.netY * Config.cellSize, Config.cellSize, Config.cellSize, 0, 360, ArcType.OPEN);
         }

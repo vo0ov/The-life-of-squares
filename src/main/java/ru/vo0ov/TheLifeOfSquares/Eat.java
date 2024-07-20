@@ -9,17 +9,17 @@ public class Eat extends Entity {
         this.netY = netY;
     }
 
-    public static void summon(List<Eat> eats, Random random, int x, int y) {
-        eats.add(new Eat(x, y));
+    public static void summon(int x, int y) {
+        Config.eats.add(new Eat(x, y));
     }
 
-    public static void summon(List<Eat> eats, Random random) {
-        summon(eats, random, random.nextInt(0, Config.netWidth + 1), random.nextInt(0, Config.netHeight + 1));
+    public static void summon() {
+        summon(Config.random.nextInt(0, Config.netWidth + 1), Config.random.nextInt(0, Config.netHeight + 1));
     }
 
-    public static void removeRandom(List<Eat> eats, Random random) {
-        if (!eats.isEmpty()) {
-            eats.remove(random.nextInt(eats.size()));
+    public static void removeRandom() {
+        if (!Config.eats.isEmpty()) {
+            Config.eats.remove(Config.random.nextInt(Config.eats.size()));
         }
     }
 }

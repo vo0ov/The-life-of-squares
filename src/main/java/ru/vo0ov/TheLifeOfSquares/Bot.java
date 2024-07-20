@@ -16,10 +16,10 @@ public class Bot extends Entity {
         this.color = color;
     }
 
-    public static Color getRandomColor(Random random) {
-        int red = random.nextInt(256);
-        int green = random.nextInt(256);
-        int blue = random.nextInt(256);
+    public static Color getRandomColor() {
+        int red = Config.random.nextInt(256);
+        int green = Config.random.nextInt(256);
+        int blue = Config.random.nextInt(256);
 
         return Color.rgb(red, green, blue);
     }
@@ -56,37 +56,37 @@ public class Bot extends Entity {
         return false;
     }
 
-    public static void summon(List<Bot> bots, Random random, int x, int y, int satiety, Color color) {
-        bots.add(new Bot(x, y, satiety, color));
+    public static void summon(int x, int y, int satiety, Color color) {
+        Config.bots.add(new Bot(x, y, satiety, color));
     }
 
-    public static void summon(List<Bot> bots, Random random, int x, int y, int satiety) {
-        summon(bots, random, x, y, satiety, getRandomColor(random));
+    public static void summon(int x, int y, int satiety) {
+        summon(x, y, satiety, getRandomColor());
     }
 
-    public static void summon(List<Bot> bots, Random random, int x, int y, Color color) {
-        summon(bots, random, x, y, Config.defaultSatiety, color);
+    public static void summon(int x, int y, Color color) {
+        summon(x, y, Config.defaultSatiety, color);
     }
 
-    public static void summon(List<Bot> bots, Random random, int x, int y) {
-        summon(bots, random, x, y, Config.defaultSatiety, getRandomColor(random));
+    public static void summon(int x, int y) {
+        summon(x, y, Config.defaultSatiety, getRandomColor());
     }
 
-    public static void summon(List<Bot> bots, Random random, int satiety) {
-        summon(bots, random, random.nextInt(0, Config.netWidth + 1), random.nextInt(0, Config.netHeight + 1), Config.defaultSatiety);
+    public static void summon(int satiety) {
+        summon(Config.random.nextInt(0, Config.netWidth + 1), Config.random.nextInt(0, Config.netHeight + 1), satiety);
     }
 
-    public static void summon(List<Bot> bots, Random random, Color color) {
-        summon(bots, random, random.nextInt(0, Config.netWidth + 1), random.nextInt(0, Config.netHeight + 1), Config.defaultSatiety, color);
+    public static void summon(Color color) {
+        summon(Config.random.nextInt(0, Config.netWidth + 1), Config.random.nextInt(0, Config.netHeight + 1), Config.defaultSatiety, color);
     }
 
-    public static void summon(List<Bot> bots, Random random) {
-        summon(bots, random, random.nextInt(0, Config.netWidth + 1), random.nextInt(0, Config.netHeight + 1), Config.defaultSatiety, getRandomColor(random));
+    public static void summon() {
+        summon(Config.random.nextInt(0, Config.netWidth + 1), Config.random.nextInt(0, Config.netHeight + 1), Config.defaultSatiety, getRandomColor());
     }
 
-    public static void removeRandom(List<Bot> bots, Random random) {
-        if (!bots.isEmpty()) {
-            bots.remove(random.nextInt(bots.size()));
+    public static void removeRandom() {
+        if (!Config.bots.isEmpty()) {
+            Config.bots.remove(Config.random.nextInt(Config.bots.size()));
         }
     }
 }

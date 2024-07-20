@@ -9,17 +9,17 @@ public class Poison extends Entity {
         this.netY = netY;
     }
 
-    public static void summon(List<Poison> poisons, Random random, int x, int y) {
-        poisons.add(new Poison(x, y));
+    public static void summon(int x, int y) {
+        Config.poisons.add(new Poison(x, y));
     }
 
-    public static void summon(List<Poison> poisons, Random random) {
-        summon(poisons, random, random.nextInt(0, Config.netWidth + 1), random.nextInt(0, Config.netHeight + 1));
+    public static void summon() {
+        summon(Config.random.nextInt(0, Config.netWidth + 1), Config.random.nextInt(0, Config.netHeight + 1));
     }
 
-    public static void removeRandom(List<Poison> poisons, Random random) {
-        if (!poisons.isEmpty()) {
-            poisons.remove(random.nextInt(poisons.size()));
+    public static void removeRandom() {
+        if (!Config.poisons.isEmpty()) {
+            Config.poisons.remove(Config.random.nextInt(Config.poisons.size()));
         }
     }
 }
