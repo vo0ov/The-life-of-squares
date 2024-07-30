@@ -8,7 +8,8 @@ public class Config {
     ////////////////////////////
     //   Системные настройки  //
     ////////////////////////////
-    public static float fps = 35f;
+    public static float fps = 60f;
+    public static float stepsPerFrame = 25f;
     public static final int width = 1920;
     public static final int height = 1080;
     public static final int cellSize = 50;
@@ -56,4 +57,8 @@ public class Config {
     public static List<Bot> bots = new ArrayList<>();
     public static List<Eat> eats = new ArrayList<>();
     public static List<Poison> poisons = new ArrayList<>();
+    public static long step = 0;
+    public static boolean isEnd = false;
+    public static boolean textRendered = false;
+    public static Map<Color, Integer[]> teams = new HashMap<>();
 }
